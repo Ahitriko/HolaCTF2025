@@ -1,6 +1,6 @@
 Q1 : The user opened a software that contained malicious content from the attacker. What was the name of the software? Ex: Skype
 
-với câu hỏi đầu tiên này, khi check log thì em có thấy một điều khá lạ là ở event ID 4798 (tiến trình liệt kê nhóm người dùng) nhưng lại chạy bởi process name : 
+với câu hỏi đầu tiên này, khi check log thì mình có thấy một điều khá lạ là ở event ID 4798 (tiến trình liệt kê nhóm người dùng) nhưng lại chạy bởi process name : 
 C:\Program Files\Mozilla Thunderbird\thunderbird.exe
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/87b21c01-f949-4965-bb75-4313bf144429" />
