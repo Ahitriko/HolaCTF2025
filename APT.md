@@ -376,7 +376,104 @@ internal class cTIvrRALJgAKjCWOQufOPTJJhWwTDtRCwkk
 <img width="885" height="642" alt="image" src="https://github.com/user-attachments/assets/88c79e07-ef98-4f41-baec-10b162c1b005" />
 
 từ đây mình sẽ bắt đầu quá trình khôi phục các file .EHC 
+mình có thể tận dụng lỗi của attacker khi giữ lại file video.mp4 , kết hợp file này và file video.mp4 sau khi bị mã hóa thì có thể rút ra keystream dùng để XOR (chu kỳ ~32 byte) của ransomware.
 
+mình dùng script sau để lấy keystream 
 
+```#!/usr/bin/env python3
+# usage:
+#   python3 derive_xor_key.py --plain /home/bawc/HolaCTF/evidence/stage3/video.mp4 \
+#                             --root  /home/bawc/HolaCTF/evidence/stage3/output
+# (hoặc chỉ định --enc trực tiếp)
 
+import argparse, os, collections
+from pathlib import Path
+
+HEAD = 2_000_000     # đọc tối đa 2MB đầu, đủ để vote khoá
+PERIOD = 32
+
+def read_head(path: Path, n: int) -> bytes:
+    with path.open("rb") as f: return f.read(n)
+
+def pick_enc_candidate(root: Path, plain: Path) -> Path | None:
+    """chọn .EHC cùng size; ưu tiên ứng viên tạo 'ftyp' ở offset 4 sau khi XOR."""
+    size = plain.stat().st_size
+    best, best_score = None, -1
+    p_head = read_head(plain, 4096)
+    for enc in root.rglob("*.EHC"):
+        try:
+            if enc.stat().st_size != size: 
+                continue
+            e_head = read_head(enc, 4096)
+            dec = bytes(e_head[i] ^ p_head[i] for i in range(min(len(e_head), len(p_head))))
+            score = 0
+            if len(dec) >= 8 and dec[4:8] == b"ftyp": score += 100  # MP4 chắc chắn
+            # điểm ASCII để phân biệt nếu có nhiều ứng viên
+            score += sum(32 <= b < 127 or b in (9,10,13) for b in dec[:256])
+            if score > best_score:
+                best, best_score = enc, score
+        except Exception:
+            continue
+    return best
+
+def vote_keystream(plain: bytes, enc: bytes) -> list[int | None]:
+    """bỏ phiếu cho từng vị trí i%32 bằng E^P, chọn giá trị xuất hiện nhiều nhất."""
+    n = min(len(plain), len(enc), HEAD)
+    votes = [collections.Counter() for _ in range(PERIOD)]
+    for i in range(n):
+        votes[i % PERIOD][enc[i] ^ plain[i]] += 1
+    ks = [None]*PERIOD
+    for i,ctr in enumerate(votes):
+        if ctr: ks[i] = ctr.most_common(1)[0][0]
+    return ks
+
+def ks_to_hex(ks: list[int | None]) -> str:
+    return "".join("??" if x is None else f"{x:02x}" for x in ks)
+
+def main():
+    ap = argparse.ArgumentParser(description="Derive 32-byte XOR keystream from MP4 & matching .EHC")
+    ap.add_argument("--plain", required=True, help="/home/bawc/HolaCTF/evidence/stage3/video.mp4")
+    ap.add_argument("--root",  required=False, default=".", help="/home/bawc/HolaCTF/evidence/stage3/output")
+    ap.add_argument("--enc",   required=False, help="xrYvsozYaitKuzsiktrX.EHC")
+    args = ap.parse_args()
+
+    plain = Path(args.plain)
+    if not plain.is_file(): raise SystemExit(f"Không thấy file plain: {plain}")
+    root  = Path(args.root)
+
+    if args.enc:
+        enc_path = Path(args.enc)
+        if not enc_path.is_file(): raise SystemExit(f"Không thấy file enc: {enc_path}")
+    else:
+        enc_path = pick_enc_candidate(root, plain)
+        if not enc_path:
+            raise SystemExit("Không tìm được file .EHC có cùng kích thước với video.mp4")
+    print(f"[+] Cặp dùng để rút key:\n    PLAIN: {plain}\n    ENC  : {enc_path}")
+
+    P = read_head(plain, HEAD)
+    E = read_head(enc_path, HEAD)
+    ks = vote_keystream(P, E)
+    hexks = ks_to_hex(ks)
+    missing = [i for i,x in enumerate(ks) if x is None]
+    print(f"[+] KS32 = {hexks}")
+    if missing:
+        print(f"[!] Còn thiếu vị trí: {missing} (nhưng với MP4 thường đã đủ để giải)")
+
+    # lưu artefacts
+    key_bytes = bytes(x if x is not None else 0 for x in ks)
+    Path("key.bin").write_bytes(key_bytes)
+    Path("key_hex.txt").write_text(" ".join(f"0x{b:02x}" for b in key_bytes)+"\n", encoding="utf-8")
+    print("[+] Done")
+
+if __name__ == "__main__":
+    main()
+```
+sau khi chạy xong xor_key.py mình sẽ nhận đc chuỗi KS32 và ghi lại rồi sử dụng trong decrypt_folder.py để khôi phục các file bị mã hóa.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d7eba98b-d82d-4c99-82c7-c52872aeb61b" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0be16ac5-fca1-4538-bb52-a6acf020954a" />
+
+sau khi khôi phục được mình kiểm tra các file đó và thấy trong file TYTUTtTtkPuXsZaiwiKa.txt có text như trên, dựa theo đây mình cũng đoán nó là file cần tìm.
+<img width="826" height="104" alt="image" src="https://github.com/user-attachments/assets/0b8249b9-2e75-4aad-8a8d-b78072fa115a" />
+
+cuối cùng là flag : HOLACTF{dUN6_BAo_91O_Cl1ck_vaO_STRAN6e_FlLe_nH3_aHuhu_6930f7c9bb4e}
 
