@@ -78,7 +78,13 @@ lúc này mình có nhớ là còn một file pcapng export từ ftk ra, mình c
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/9e87d1f8-a26a-4d20-a0aa-7169db63732d" />
 
 Q8: The attacker made a mistake, take advantage of it and tell us the name of files encrypted by attacker's ransomware in folder Videos ?
+ <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/17485cdd-0b6f-48d8-a884-d85d94a437c2" />
+kieemr tra truy xuất Prefetch của steam.exe thì mình phát hiện mỗi một file trong các folder của tmq thì ngay sau đó lại xuất hiện thêm các dạng file cùng folder nhưng ở dạng .EHC, khả năng các file này đã bị mã hoa sbowir steam.exe
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0fa9b6bc-0493-4e66-b7c2-51a6107151c2" />
+và mình thấy trong folder Videos có file bị mã hóa chính là video.mp4
 
+
+Q9:What are the contents of the file flag.txt? (Convert the content of the flag.txt to md5 and submit)
 sau khi có được file steam.exe thì mình bắt đầu reverse nó.
    
 ```
@@ -366,11 +372,10 @@ internal class cTIvrRALJgAKjCWOQufOPTJJhWwTDtRCwkk
 }
 ```
 
-
 đoạn này mình nhờ chatGPT decode thì nó ra như sau 
 <img width="885" height="642" alt="image" src="https://github.com/user-attachments/assets/88c79e07-ef98-4f41-baec-10b162c1b005" />
 
-
+từ đây mình sẽ bắt đầu quá trình khôi phục các file .EHC 
 
 
 
